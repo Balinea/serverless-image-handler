@@ -349,8 +349,6 @@ Resources:
               - Function
               - ImageHandler
               - S3Bucket
-            - '-'
-            - !Ref 'AWS::Region'
         S3Key: !FindInMap
           - Function
           - ImageHandler
@@ -613,8 +611,6 @@ Resources:
                   - UI
                   - Src
                   - Bucket
-                - '-'
-                - !Ref 'AWS::Region'
                 - /
                 - !FindInMap
                   - UI
@@ -639,8 +635,6 @@ Resources:
               - Function
               - CustomResource
               - S3Bucket
-            - '-'
-            - !Ref 'AWS::Region'
         S3Key: !FindInMap
           - Function
           - CustomResource
@@ -697,8 +691,6 @@ Resources:
             - UI
             - Src
             - Bucket
-          - '-'
-          - !Ref 'AWS::Region'
           - /
           - !FindInMap
             - UI
