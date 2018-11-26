@@ -49,6 +49,17 @@ Parameters:
       access to your API.
     Default: '*'
     Type: String
+  RewriteEnabled:
+    Description: Will this API require url rewriting?
+    Default: 'No'
+    Type: String
+    AllowedValues:
+      - 'Yes'
+      - 'No'
+  RewritePatterns:
+    Description: List of rewrite rule patterns
+    Default: ''
+    Type: String
   LambdaLogRetention:
     Description: Retain Lambda CloudWatch Logs by days.
     Type: Number
@@ -101,6 +112,8 @@ Metadata:
           - OriginS3Bucket
           - OriginS3BucketRegion
           - EnableCors
+          - RewriteEnabled
+          - RewritePatterns
           - CorsOrig
           - LambdaLogRetention
       - Label:
@@ -115,6 +128,10 @@ Metadata:
         default: Origin S3 Bucket Region
       EnableCors:
         default: Enable CORS?
+      RewriteEnabled:
+        default: Enable Rewrite?
+      RewritePatterns:
+        default: Rewrite Patterns
       CorsOrig:
         default: CORS Origin
       LambdaLogRetention:
@@ -141,7 +158,7 @@ Mappings:
         serverless-image-handler API Gateway to manipulate images with Thumbor.
       Runtime: python2.7
       Timeout: '10'
-      MemorySize: '1536'
+      MemorySize: '512'
     CustomResource:
       S3Bucket: %%BUCKET_NAME%%
       S3Key: >-
@@ -394,10 +411,12 @@ Resources:
             - Send
             - AnonymousUsage
             - Data
+          REWRITE_ENABLED: !Ref RewriteEnabled
+          REWRITE_PATTERNS: !Ref RewritePatterns
           UUID: !GetAtt
             - CreateUniqueID
             - UUID
-          LOG_LEVEL: INFO
+          LOG_LEVEL: DEBUG
           ALLOW_UNSAFE_URL: True
   ImageHandlerLogGroup:
     DeletionPolicy: Retain
