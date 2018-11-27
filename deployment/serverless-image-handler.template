@@ -228,6 +228,7 @@ Resources:
             IndexDocument: "index.html"
             ErrorDocument: "index.html"
 
+
   DemoWebsiteBucketPolicy:
     Condition: AutoDeployUI
     Type: "AWS::S3::BucketPolicy"
@@ -249,6 +250,22 @@ Resources:
                                 - "/*"
                     Principal:
                         CanonicalUser: !Sub ${ImageHandlerOAI.S3CanonicalUserId}
+
+  PublicBucketPolicy:
+    Type: "AWS::S3::BucketPolicy"
+    Properties:
+      Bucket: !Sub ${OriginS3Bucket}
+      PolicyDocument:
+        Statement:
+          -
+            Action:
+              - "s3:GetObject"
+            Effect: "Allow"
+            Resource:
+              - !Sub arn:aws:s3:::${OriginS3Bucket}/public/*
+            Principal:
+              CanonicalUser: !Sub ${ImageHandlerOAI.S3CanonicalUserId}
+
   # SO-SIH-175 - 08/28/2018 - Missing header
   # https://github.com/awslabs/serverless-image-handler/issues/33
   ImageHandlerS3Policy:
@@ -500,7 +517,6 @@ Resources:
 
   ImageHandlerOAI:
     Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
-    Condition: AutoDeployUI
     Properties:
       CloudFrontOriginAccessIdentityConfig:
         Comment: serverless image handler OAI
@@ -515,7 +531,11 @@ Resources:
             Id: !Sub S3-${DemoWebsiteBucket}
             S3OriginConfig:
               OriginAccessIdentity: !Sub origin-access-identity/cloudfront/${ImageHandlerOAI}
-        - - DomainName: !Sub ${ImageHandlerApi}.execute-api.${AWS::Region}.amazonaws.com
+        - - DomainName: !Sub ${OriginS3Bucket}.s3.${AWS::Region}.amazonaws.com
+            Id: !Sub S3-${OriginS3Bucket}
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub origin-access-identity/cloudfront/${ImageHandlerOAI}
+          - DomainName: !Sub ${ImageHandlerApi}.execute-api.${AWS::Region}.amazonaws.com
             Id: !Ref ImageHandlerApi
             OriginPath: /image
             CustomOriginConfig:
@@ -528,6 +548,18 @@ Resources:
         Enabled: True
         HttpVersion: http2
         Comment: Image Handler Distribution
+        CacheBehaviors:
+          -
+            AllowedMethods:
+              - GET
+              - HEAD
+            PathPattern: public/*
+            TargetOriginId: !Sub S3-${OriginS3Bucket}
+            ForwardedValues:
+              QueryString: 'false'
+              Cookies:
+                Forward: none
+            ViewerProtocolPolicy: https-only
         DefaultCacheBehavior:
           AllowedMethods:
             - GET
