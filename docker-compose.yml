@@ -1,0 +1,7 @@
+serverless:
+    container_name: serverless
+    build: docker/amazonlinux
+    volumes:
+        - .:/var/serverless
+    working_dir: /var/serverless
+
