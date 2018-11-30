@@ -49,6 +49,17 @@ Parameters:
       access to your API.
     Default: '*'
     Type: String
+  RewriteEnabled:
+    Description: Will this API require url rewriting?
+    Default: 'No'
+    Type: String
+    AllowedValues:
+      - 'Yes'
+      - 'No'
+  RewritePatterns:
+    Description: List of rewrite rule patterns
+    Default: ''
+    Type: String
   LambdaLogRetention:
     Description: Retain Lambda CloudWatch Logs by days.
     Type: Number
@@ -101,6 +112,8 @@ Metadata:
           - OriginS3Bucket
           - OriginS3BucketRegion
           - EnableCors
+          - RewriteEnabled
+          - RewritePatterns
           - CorsOrig
           - LambdaLogRetention
       - Label:
@@ -115,6 +128,10 @@ Metadata:
         default: Origin S3 Bucket Region
       EnableCors:
         default: Enable CORS?
+      RewriteEnabled:
+        default: Enable Rewrite?
+      RewritePatterns:
+        default: Rewrite Patterns
       CorsOrig:
         default: CORS Origin
       LambdaLogRetention:
@@ -141,7 +158,7 @@ Mappings:
         serverless-image-handler API Gateway to manipulate images with Thumbor.
       Runtime: python2.7
       Timeout: '10'
-      MemorySize: '1536'
+      MemorySize: '512'
     CustomResource:
       S3Bucket: %%BUCKET_NAME%%
       S3Key: >-
@@ -211,6 +228,7 @@ Resources:
             IndexDocument: "index.html"
             ErrorDocument: "index.html"
 
+
   DemoWebsiteBucketPolicy:
     Condition: AutoDeployUI
     Type: "AWS::S3::BucketPolicy"
@@ -232,6 +250,22 @@ Resources:
                                 - "/*"
                     Principal:
                         CanonicalUser: !Sub ${ImageHandlerOAI.S3CanonicalUserId}
+
+  PublicBucketPolicy:
+    Type: "AWS::S3::BucketPolicy"
+    Properties:
+      Bucket: !Sub ${OriginS3Bucket}
+      PolicyDocument:
+        Statement:
+          -
+            Action:
+              - "s3:GetObject"
+            Effect: "Allow"
+            Resource:
+              - !Sub arn:aws:s3:::${OriginS3Bucket}/public/*
+            Principal:
+              CanonicalUser: !Sub ${ImageHandlerOAI.S3CanonicalUserId}
+
   # SO-SIH-175 - 08/28/2018 - Missing header
   # https://github.com/awslabs/serverless-image-handler/issues/33
   ImageHandlerS3Policy:
@@ -332,8 +366,6 @@ Resources:
               - Function
               - ImageHandler
               - S3Bucket
-            - '-'
-            - !Ref 'AWS::Region'
         S3Key: !FindInMap
           - Function
           - ImageHandler
@@ -394,10 +426,12 @@ Resources:
             - Send
             - AnonymousUsage
             - Data
+          REWRITE_ENABLED: !Ref RewriteEnabled
+          REWRITE_PATTERNS: !Ref RewritePatterns
           UUID: !GetAtt
             - CreateUniqueID
             - UUID
-          LOG_LEVEL: INFO
+          LOG_LEVEL: DEBUG
           ALLOW_UNSAFE_URL: True
   ImageHandlerLogGroup:
     DeletionPolicy: Retain
@@ -483,7 +517,6 @@ Resources:
 
   ImageHandlerOAI:
     Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
-    Condition: AutoDeployUI
     Properties:
       CloudFrontOriginAccessIdentityConfig:
         Comment: serverless image handler OAI
@@ -498,7 +531,11 @@ Resources:
             Id: !Sub S3-${DemoWebsiteBucket}
             S3OriginConfig:
               OriginAccessIdentity: !Sub origin-access-identity/cloudfront/${ImageHandlerOAI}
-        - - DomainName: !Sub ${ImageHandlerApi}.execute-api.${AWS::Region}.amazonaws.com
+        - - DomainName: !Sub ${OriginS3Bucket}.s3.${AWS::Region}.amazonaws.com
+            Id: !Sub S3-${OriginS3Bucket}
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub origin-access-identity/cloudfront/${ImageHandlerOAI}
+          - DomainName: !Sub ${ImageHandlerApi}.execute-api.${AWS::Region}.amazonaws.com
             Id: !Ref ImageHandlerApi
             OriginPath: /image
             CustomOriginConfig:
@@ -511,6 +548,18 @@ Resources:
         Enabled: True
         HttpVersion: http2
         Comment: Image Handler Distribution
+        CacheBehaviors:
+          -
+            AllowedMethods:
+              - GET
+              - HEAD
+            PathPattern: public/*
+            TargetOriginId: !Sub S3-${OriginS3Bucket}
+            ForwardedValues:
+              QueryString: 'false'
+              Cookies:
+                Forward: none
+            ViewerProtocolPolicy: https-only
         DefaultCacheBehavior:
           AllowedMethods:
             - GET
@@ -594,8 +643,6 @@ Resources:
                   - UI
                   - Src
                   - Bucket
-                - '-'
-                - !Ref 'AWS::Region'
                 - /
                 - !FindInMap
                   - UI
@@ -620,8 +667,6 @@ Resources:
               - Function
               - CustomResource
               - S3Bucket
-            - '-'
-            - !Ref 'AWS::Region'
         S3Key: !FindInMap
           - Function
           - CustomResource
@@ -678,8 +723,6 @@ Resources:
             - UI
             - Src
             - Bucket
-          - '-'
-          - !Ref 'AWS::Region'
           - /
           - !FindInMap
             - UI

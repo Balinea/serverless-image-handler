@@ -123,10 +123,7 @@ def true_url(http_path):
     """
     Generate URL based on /unsafe or security key
     """
-    if bool(strtobool(str(config.ALLOW_UNSAFE_URL))):
-        http_path = '/unsafe' + http_path
-    return http_path
-
+    return '/unsafe' + http_path
 
 def rewrite(http_path):
     if str(os.environ.get('REWRITE_ENABLED')).upper() == 'YES':
