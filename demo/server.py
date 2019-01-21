@@ -1,7 +1,19 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
+import traceback
+import logging
+
 from thumbor.context import ServerParameters
 from thumbor.server import *
+
+
+thumbor_config_path = './thumbor.conf'
+thumbor_socket = '/tmp/thumbor'
+unix_path = 'http+unix://%2Ftmp%2Fthumbor'
+log_level = 'DEBUG'
+
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 def main(argv):
     start_thumbor()
@@ -51,7 +63,13 @@ def start_server():
     t.start()
     return t
 
-
+def stop_thumbor():
+    return None
+    tornado.ioloop.IOLoop.instance().stop()
+    try:
+        os.remove(thumbor_socket)
+    except OSError as error:
+        logging.error('stop_thumbor error: %s' % (error))
 
 if __name__ == "__main__":
    main(sys.argv[1:])

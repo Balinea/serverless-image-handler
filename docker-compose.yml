@@ -1,7 +1,19 @@
-serverless:
-    container_name: serverless
-    build: docker/amazonlinux
-    volumes:
-        - .:/var/serverless
-    working_dir: /var/serverless
+version: "3"
+
+services:
+
+    serverless:
+        container_name: serverless
+        build: docker/amazonlinux
+        volumes:
+            - .:/var/serverless
+        working_dir: /var/serverless
+
+
+    demo: 
+        container_name: demo
+        build: docker/demo
+        volumes:
+           - .:/var/demo
+        working_dir: /var/demo/demo
 
