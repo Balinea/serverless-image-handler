@@ -431,7 +431,7 @@ Resources:
           UUID: !GetAtt
             - CreateUniqueID
             - UUID
-          LOG_LEVEL: DEBUG
+          LOG_LEVEL: INFO
           ALLOW_UNSAFE_URL: True
   ImageHandlerLogGroup:
     DeletionPolicy: Retain
