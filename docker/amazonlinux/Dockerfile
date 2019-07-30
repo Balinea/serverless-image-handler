@@ -11,7 +11,7 @@ RUN yum update -y && \
     yum install zip wget git libpng-devel libcurl-devel gcc python27-devel libjpeg-devel -y
 
 # ImageMagick
-RUN yum install -y ImageMagick-devel
+RUN yum install -y ImageMagick-devel openssl-devel
 
 # Other libraries
 RUN yum install -y pngcrush libjpeg* gifsicle
